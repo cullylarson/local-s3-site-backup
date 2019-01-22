@@ -1,0 +1,35 @@
+{
+    "db": {
+        "user": "",
+        "pass": "",
+        "name": "",
+        "port": 3306,
+        "backupDest": "",
+        "backupFileFormat": ""
+    },
+    "files": {
+        "source": "",
+        "backupDest": "",
+        "backupFileFormat": ""
+    },
+    "local": {
+        "num": {
+            "daily": 7,
+            "weekly": 0,
+            "monthly": 0
+        }
+    },
+    "s3": {
+        "num": {
+            "daily": 7,
+            "weekly": 4,
+            "monthly": 6
+        },
+        "accessKeyId": "",
+        "secretAccessKey": "",
+        "endpoint": "",
+        "bucket": "",
+        "dbPrefix": "",
+        "filesPrefix": ""
+    }
+}

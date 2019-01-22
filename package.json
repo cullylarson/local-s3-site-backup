@@ -1,0 +1,29 @@
+{
+  "name": "mac-s3-backup",
+  "version": "0.0.1",
+  "description": "A script to back up websites locally and to S3.",
+  "main": "do-backup.js",
+  "scripts": {
+    "watch": "esw --watch",
+    "test": "jest ./test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/madcollective/mac-s3-backup.git"
+  },
+  "author": "Cully Larson <cully.larson@gmail.com>",
+  "bugs": {
+    "url": "https://github.com/madcollective/mac-s3-backup/issues"
+  },
+  "homepage": "https://github.com/madcollective/mac-s3-backup#readme",
+  "dependencies": {
+    "@cullylarson/f": "0.0.7",
+    "date-fns": "^1.30.1",
+    "eslint-watch": "^4.0.2",
+    "ramda": "^0.26.1",
+    "standard": "^12.0.1"
+  },
+  "devDependencies": {
+    "jest": "^23.6.0"
+  }
+}
