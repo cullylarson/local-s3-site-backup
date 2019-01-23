@@ -1,8 +1,8 @@
 const path = require('path')
 const R = require('ramda')
+const dateFns = require('date-fns')
 const { get } = require('@cullylarson/f')
 const {
-    reportM,
     addExtension,
     ensureBackupDestSubFolders,
     getLocalInfos,
@@ -14,8 +14,10 @@ const {
     makeFilesBackup,
 } = require('./lib/utils')
 
-const exitError = (msg, err = undefined) => {
+const exitError = (name, msg, err = undefined) => {
     const finalMessage = [
+        '[' + dateFns.format(new Date(), 'YYYY-MM-DD HH:mm:SS') + ']',
+        `[${name}]`,
         'ERROR:',
         msg,
         err
@@ -29,22 +31,33 @@ const exitError = (msg, err = undefined) => {
     process.exit(1)
 }
 
+const notice = (name, msg) => {
+    const finalMessage = [
+        '[' + dateFns.format(new Date(), 'YYYY-MM-DD HH:mm:SS') + ']',
+        `[${name}]`,
+        msg,
+    ]
+        .join(' ')
+
+    console.log(finalMessage)
+}
+
 const getConfig = (configFile) => {
     try {
         return require(configFile)
     }
     catch(e) {
-        exitError('Could not read config file.', e)
+        exitError('???', `Could not read config file: ${configFile}`, e)
     }
 }
 
-const verifyConfig = (config) => {
+const verifyConfig = R.curry((configFile, config) => {
     const verifyRequired = (prefix, requiredParameters, config) => {
         if(prefix.length) {
             const value = get(prefix, null, config)
 
             if(value === null || value === undefined || value === '') {
-                exitError(`The config file must have a value for: ${prefix.join('.')}`)
+                exitError(config.name, `The config file must have a value for ${prefix.join('.')} (${configFile})`)
             }
         }
 
@@ -57,6 +70,7 @@ const verifyConfig = (config) => {
     }
 
     const requiredParameters = {
+        'name': {},
         'db': {
             'user': {},
             'pass': {},
@@ -95,36 +109,36 @@ const verifyConfig = (config) => {
     verifyRequired([], requiredParameters, config)
 
     if(config.db.backupFileFormat === config.files.backupFileFormat) {
-        exitError('Config parameters db.backupFileFormat and files.backupFileFormat cannot have the same value.')
+        exitError(config.name, 'Config parameters db.backupFileFormat and files.backupFileFormat cannot have the same value.')
     }
 
     if(config.db.backupFileFormat.indexOf('[DATE]') === -1) {
-        exitError('Config parameter db.backupFileFormat must contain [DATE] in its value.')
+        exitError(config.name, 'Config parameter db.backupFileFormat must contain [DATE] in its value.')
     }
 
     if(config.files.backupFileFormat.indexOf('[DATE]') === -1) {
-        exitError('Config parameter files.backupFileFormat must contain [DATE] in its value.')
+        exitError(config.name, 'Config parameter files.backupFileFormat must contain [DATE] in its value.')
     }
 
     if(parseInt(config.local.num.daily) < 1) {
-        exitError('Config parameter local.num.daily must be at least 1 (i.e. there must be at least one daily local backup).')
+        exitError(config.name, 'Config parameter local.num.daily must be at least 1 (i.e. there must be at least one daily local backup).')
     }
 
     if(parseInt(config.s3.num.daily) < 1) {
-        exitError('Config parameter s3.num.daily must be at least 1 (i.e. there must be at least one daily remote backup).')
+        exitError(config.name, 'Config parameter s3.num.daily must be at least 1 (i.e. there must be at least one daily remote backup).')
     }
 
     return config
-}
+})
 
 const configFile = get(2, null, process.argv)
 
 if(!configFile) {
-    exitError('You must provide the path to a config file.')
+    exitError('???', 'You must provide the path to a config file.')
 }
 
 const config = R.compose(
-    verifyConfig,
+    verifyConfig(configFile),
     getConfig,
 )(configFile)
 
@@ -138,48 +152,50 @@ const fileFormatWithExtension = {
     files: addExtension(config.files.backupFileFormat, compressedExtensions.files),
 }
 
-const makeLocalBackup = (filesOrDatabaseForErrorMessage, backupDest, fileFormat, num, makeBackup) => {
-    return ensureBackupDestSubFolders(backupDest)
-        .catch(err => exitError(`Failed while creating daily, weekly, monthly folders for ${filesOrDatabaseForErrorMessage} backups.`, err))
-        .then(([dailyDest, weeklyDest, monthlyDest]) => {
-            return getLocalInfos(
-                fileFormat,
-                dailyDest,
-                weeklyDest,
-                monthlyDest,
-            )
-                .catch(err => exitError(`Failed while reading local ${filesOrDatabaseForErrorMessage} backups folders.`, err))
-                .then(infos => {
-                    if(shouldMakeLocalBackup(infos)) {
-                        return makeBackup(dailyDest)
-                            .catch(err => exitError(`Failed while making ${filesOrDatabaseForErrorMessage} backup.`, err))
-                            .then(backupFileName => {
-                                return R.prepend(
-                                    fileInfoFromName('daily', fileFormat, path.dirname(backupFileName), path.basename(backupFileName)),
-                                    infos,
-                                )
-                            })
-                    }
-                    else {
-                        return infos
-                    }
-                })
-                .then(promoteLocalBackups(num, weeklyDest, monthlyDest))
-                .then(removeExpiredLocalBackups(num))
+const makeLocalBackup = async (filesOrDatabaseForErrorMessage, configName, backupDest, fileFormat, num, makeBackup) => {
+    const [dailyDest, weeklyDest, monthlyDest] = await ensureBackupDestSubFolders(backupDest)
+        .catch(err => exitError(configName, `Failed while creating daily, weekly, monthly folders for ${filesOrDatabaseForErrorMessage} backups.`, err))
+
+    return getLocalInfos(
+        fileFormat,
+        dailyDest,
+        weeklyDest,
+        monthlyDest,
+    )
+        .catch(err => exitError(configName, `Failed while reading local ${filesOrDatabaseForErrorMessage} backups folders.`, err))
+        .then(infos => {
+            if(shouldMakeLocalBackup(infos)) {
+                return makeBackup(dailyDest)
+                    .catch(err => exitError(configName, `Failed while making ${filesOrDatabaseForErrorMessage} backup.`, err))
+                    .then(backupFileName => {
+                        notice(configName, `Made ${filesOrDatabaseForErrorMessage} backup: ${backupFileName}`)
+                        return R.prepend(
+                            fileInfoFromName('daily', fileFormat, path.dirname(backupFileName), path.basename(backupFileName)),
+                            infos,
+                        )
+                    })
+            }
+            else {
+                return infos
+            }
         })
-        .catch(err => exitError(`Unknown error while processing local ${filesOrDatabaseForErrorMessage} backups.`, err))
+        .then(promoteLocalBackups(num, weeklyDest, monthlyDest))
+        .then(removeExpiredLocalBackups(num))
+        .catch(err => exitError(configName, `Unknown error while processing local ${filesOrDatabaseForErrorMessage} backups.`, err))
 }
 
-// don't perform backups async because we don't want one task's failure to kill the process while the other task is running.
+async function main() {
+    // don't perform backups async because we don't want one task's failure to kill the process while the other task is running.
 
-// database backups
-makeLocalBackup('database', config.db.backupDest, fileFormatWithExtension.db, config.local.num, (dailyDest) => {
-    return makeDatabaseBackup(config.db.user, config.db.pass, config.db.name, config.db.port, fileFormatWithExtension.db, dailyDest)
-})
-    .then(() => {
-        // files backups
-        return makeLocalBackup('file', config.files.backupDest, fileFormatWithExtension.files, config.local.num, (dailyDest) => {
-            return makeFilesBackup(config.files.source, fileFormatWithExtension.files, dailyDest)
-        })
-            .then(reportM('input files')) // stub
+    // database backups
+    await makeLocalBackup('database', config.name, config.db.backupDest, fileFormatWithExtension.db, config.local.num, (dailyDest) => {
+        return makeDatabaseBackup(config.db.user, config.db.pass, config.db.name, config.db.port, fileFormatWithExtension.db, dailyDest)
     })
+
+    // files backups
+    await makeLocalBackup('file', config.name, config.files.backupDest, fileFormatWithExtension.files, config.local.num, (dailyDest) => {
+        return makeFilesBackup(config.files.source, fileFormatWithExtension.files, dailyDest)
+    })
+}
+
+main()

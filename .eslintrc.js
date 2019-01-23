@@ -11,7 +11,11 @@ module.exports = {
     },
     'rules': {
         'indent': ['error', 4, {'SwitchCase': 1}],
-        'space-before-function-paren': ['error', 'never'],
+        'space-before-function-paren': ['error', {
+            'anonymous': 'never',
+            'named': 'never',
+            'asyncArrow': 'always',
+        }],
         'keyword-spacing': 'off',
         'brace-style': ['error', 'stroustrup', {'allowSingleLine': true}],
         'quotes': ['error', 'single', {'avoidEscape': true}],

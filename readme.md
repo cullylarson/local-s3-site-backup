@@ -13,6 +13,7 @@
 
 These are the config file parameters. All of them must be set. If you change any parameters related to the naming or location of backup files (e.g `backupDest`, `backupFileFormat`, `endpoint`, `bucket`, `dbPrefix`, `filesPrefix`), backups previously made will no longer be recognized.
 
+- **name**. A name used in log files. For example: `Colleges of Distinction`
 - **db**. The username, password, database name, and port used to connect to MySQL to fetch the site's data.
     - **backupDest**. The absolute path to the folder to store database backups. Folders named 'daily', 'weekly', and 'montly' will be created in this folder. For example: `/home/backups/abound/db`)
     - **backupFileFormat**. The format of database backup files. Can, and must, use `[DATE]` (case sensitive) in the format, and it will be replaced with the data in the format `YYYYMMDD`. Do not include a file extension, this will be addd automatically. This must be different from `files.backupFileFormat`. For example:`abound.college-db-[DATE]`)
