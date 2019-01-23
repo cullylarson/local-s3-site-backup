@@ -9,6 +9,8 @@ const {
     shouldMakeLocalBackup,
     makeDatabaseBackup,
     fileInfoFromName,
+    removeExpiredLocalBackups,
+    promoteLocalBackups,
 } = require('./lib/utils')
 
 const exitError = (msg, err = undefined) => {
@@ -143,8 +145,8 @@ ensureBackupDestSubFolders(config.db.backupDest)
         )
             .catch(err => exitError('Failed while reading local database backups folders.', err))
             .then(infos => {
-                return shouldMakeLocalBackup(infos)
-                    ? makeDatabaseBackup(config.db.user, config.db.pass, config.db.name, config.db.port, dbFileFormatWithExtension, dailyDest)
+                if(shouldMakeLocalBackup(infos)) {
+                    return makeDatabaseBackup(config.db.user, config.db.pass, config.db.name, config.db.port, dbFileFormatWithExtension, dailyDest)
                         .catch(err => exitError('Failed while making database backup.', err))
                         .then(backupFileName => {
                             return R.prepend(
@@ -152,8 +154,13 @@ ensureBackupDestSubFolders(config.db.backupDest)
                                 infos,
                             )
                         })
-                    : infos
+                }
+                else {
+                    return infos
+                }
             })
+            .then(promoteLocalBackups(config.local.num, weeklyDest, monthlyDest))
             .then(reportM('local infos'))
+            .then(removeExpiredLocalBackups(config.local.num))
     })
     .catch(err => exitError('Unknown error while processing local database backups.', err))
