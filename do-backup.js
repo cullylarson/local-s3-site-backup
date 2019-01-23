@@ -8,7 +8,7 @@ const {
     getLocalInfos,
     shouldMakeLocalBackup,
     makeDatabaseBackup,
-    fileInfoFromName
+    fileInfoFromName,
 } = require('./lib/utils')
 
 const exitError = (msg, err = undefined) => {
@@ -146,12 +146,12 @@ ensureBackupDestSubFolders(config.db.backupDest)
                 return shouldMakeLocalBackup(infos)
                     ? makeDatabaseBackup(config.db.user, config.db.pass, config.db.name, config.db.port, dbFileFormatWithExtension, dailyDest)
                         .catch(err => exitError('Failed while making database backup.', err))
-                    .then(backupFileName => {
-                        return R.prepend(
-                            fileInfoFromName('daily', dbFileFormatWithExtension, path.dirname(backupFileName), path.basename(backupFileName)),
-                            infos,
-                        )
-                    })
+                        .then(backupFileName => {
+                            return R.prepend(
+                                fileInfoFromName('daily', dbFileFormatWithExtension, path.dirname(backupFileName), path.basename(backupFileName)),
+                                infos,
+                            )
+                        })
                     : infos
             })
             .then(reportM('local infos'))
