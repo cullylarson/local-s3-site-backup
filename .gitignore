@@ -8,6 +8,7 @@ tmp
 .tmp
 
 /.idea
+/.db
 /node_modules
 /vendor
 /config.json

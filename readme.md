@@ -14,11 +14,11 @@
 These are the config file parameters. All of them must be set. If you change any parameters related to the naming or location of backup files (e.g `backupDest`, `backupFileFormat`, `endpoint`, `bucket`, `dbPrefix`, `filesPrefix`), backups previously made will no longer be recognized.
 
 - **db**. The username, password, database name, and port used to connect to MySQL to fetch the site's data.
-    - **backupDest**. The absolute path to the folder to store database backups. For example: `/home/backups/abound/db`)
+    - **backupDest**. The absolute path to the folder to store database backups. Folders named 'daily', 'weekly', and 'montly' will be created in this folder. For example: `/home/backups/abound/db`)
     - **backupFileFormat**. The format of database backup files. Can, and must, use `[DATE]` (case sensitive) in the format, and it will be replaced with the data in the format `YYYYMMDD`. Do not include a file extension, this will be addd automatically. This must be different from `files.backupFileFormat`. For example:`abound.college-db-[DATE]`)
 - **files**. Information for file backups.
     - **source**. The absolute path to the site files. For example: `/home/abound/abound.college`)
-    - **backupDest**. The absolute path to the folder to store file backups. For example: `/home/backups/abound.college/files`)
+    - **backupDest**. The absolute path to the folder to store file backups. Folders named 'daily', 'weekly', and 'montly' will be created in this folder. For example: `/home/backups/abound.college/files`)
     - **backupFileFormat**. The format of file backup files. Can, and must, use `[DATE]` (case sensitive) in the format, and it will be replaced with the data in the format `YYYYMMDD`. Do not include a file extension, this will be addd automatically. This must be different from `db.backupFileFormat`. For example:`abound.college-files-[DATE]`)
 - **local**. Information about local backups.
     - **num**. The number of backups to keep.
@@ -33,8 +33,8 @@ These are the config file parameters. All of them must be set. If you change any
     - **accessKeyId** and **secretAccessKey**. Used to authenticate access to the S3 account.
     - **endpoint**. The endpoint used to access S3. For example: `nyc3.digitaloceanspaces.com`
     - **bucket**. The name of the bucket to store backups in.
-    - **dbPrefix**. All database backup objects stored in the S3 bucket will be prefixed with this value. If using slashes, you likely want to include a trailing slash. If you are storing backups for multiple sites in the same bucket, use this to differentiate them. For example: `/backups/abound.college/db/`
-    - **filesPrefix**. All files backup objects stored in the S3 bucket will be prefixed with this value. If using slashes, you likely want to include a trailing slash. If you are storing backups for multiple sites in the same bucket, use this to differentiate them. For example: `/backups/abound.college/files/`
+    - **dbPrefix**. All database backup objects stored in the S3 bucket will be prefixed with this value. If using slashes, you likely want to include a trailing slash. If you are storing backups for multiple sites in the same bucket, use this to differentiate them. Prefixes 'daily/', 'weekly/', and 'monthly/' will be added to this prefix. For example: `/backups/abound.college/db/`
+    - **filesPrefix**. All files backup objects stored in the S3 bucket will be prefixed with this value. If using slashes, you likely want to include a trailing slash. If you are storing backups for multiple sites in the same bucket, use this to differentiate them. Prefixes 'daily/', 'weekly/', and 'monthly/' will be added to this prefix. For example: `/backups/abound.college/files/`
 
 ### cron
 
@@ -50,4 +50,9 @@ Your cron file would look something like this:
 
 ## Dev
 
-`npm run watch`
+```
+npm run watch
+npm run test
+docker-compose up -d
+```
+

@@ -1,6 +1,15 @@
+const path = require('path')
 const R = require('ramda')
 const { get } = require('@cullylarson/f')
-const { getLocalBackups, addExtension, fileInfoFromName, reportM, augFrequency, sortInfoNewestFirst } = require('./lib/utils')
+const {
+    reportM,
+    addExtension,
+    ensureBackupDestSubFolders,
+    getLocalInfos,
+    shouldMakeLocalBackup,
+    makeDatabaseBackup,
+    fileInfoFromName
+} = require('./lib/utils')
 
 const exitError = (msg, err = undefined) => {
     const finalMessage = [
@@ -94,11 +103,22 @@ const verifyConfig = (config) => {
         exitError('Config parameter files.backupFileFormat must contain [DATE] in its value.')
     }
 
+    if(parseInt(config.local.num.daily) < 1) {
+        exitError('Config parameter local.num.daily must be at least 1 (i.e. there must be at least one daily local backup).')
+    }
+
+    if(parseInt(config.s3.num.daily) < 1) {
+        exitError('Config parameter s3.num.daily must be at least 1 (i.e. there must be at least one daily remote backup).')
+    }
+
     return config
 }
 
 const configFile = get(2, null, process.argv)
-const compressedExtension = 'tar.gz'
+const compressedExtensions = {
+    files: 'tar.gz',
+    db: 'sql.gz',
+}
 
 if(!configFile) {
     exitError('You must provide the path to a config file.')
@@ -109,12 +129,31 @@ const config = R.compose(
     getConfig,
 )(configFile)
 
+const dbFileFormatWithExtension = addExtension(config.db.backupFileFormat, compressedExtensions.db)
+
 // database backups
-getLocalBackups(addExtension(config.db.backupFileFormat, compressedExtension), config.db.backupDest)
-    .catch(err => exitError('Failed while reading local database backups folder.', err))
-    .then(R.map(fileInfoFromName(addExtension(config.db.backupFileFormat, compressedExtension), config.db.backupDest)))
-    .catch(err => exitError('Failed while parsing local database backup filenames.', err))
-    .then(sortInfoNewestFirst)
-    .then(augFrequency)
-    .then(reportM('file infos'))
-    .catch(err => exitError('Unknown.', err))
+ensureBackupDestSubFolders(config.db.backupDest)
+    .catch(err => exitError('Failed while creating daily, weekly, monthly folders for database backups.', err))
+    .then(([dailyDest, weeklyDest, monthlyDest]) => {
+        return getLocalInfos(
+            dbFileFormatWithExtension,
+            dailyDest,
+            weeklyDest,
+            monthlyDest,
+        )
+            .catch(err => exitError('Failed while reading local database backups folders.', err))
+            .then(infos => {
+                return shouldMakeLocalBackup(infos)
+                    ? makeDatabaseBackup(config.db.user, config.db.pass, config.db.name, config.db.port, dbFileFormatWithExtension, dailyDest)
+                        .catch(err => exitError('Failed while making database backup.', err))
+                    .then(backupFileName => {
+                        return R.prepend(
+                            fileInfoFromName('daily', dbFileFormatWithExtension, path.dirname(backupFileName), path.basename(backupFileName)),
+                            infos,
+                        )
+                    })
+                    : infos
+            })
+            .then(reportM('local infos'))
+    })
+    .catch(err => exitError('Unknown error while processing local database backups.', err))
