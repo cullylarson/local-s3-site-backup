@@ -160,7 +160,7 @@ ensureBackupDestSubFolders(config.db.backupDest)
                 }
             })
             .then(promoteLocalBackups(config.local.num, weeklyDest, monthlyDest))
-            .then(reportM('local infos'))
             .then(removeExpiredLocalBackups(config.local.num))
+            // .then(reportM('local infos'))
     })
     .catch(err => exitError('Unknown error while processing local database backups.', err))
