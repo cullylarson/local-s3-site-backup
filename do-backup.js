@@ -11,6 +11,7 @@ const {
     fileInfoFromName,
     removeExpiredLocalBackups,
     promoteLocalBackups,
+    makeFilesBackup,
 } = require('./lib/utils')
 
 const exitError = (msg, err = undefined) => {
@@ -117,10 +118,6 @@ const verifyConfig = (config) => {
 }
 
 const configFile = get(2, null, process.argv)
-const compressedExtensions = {
-    files: 'tar.gz',
-    db: 'sql.gz',
-}
 
 if(!configFile) {
     exitError('You must provide the path to a config file.')
@@ -131,36 +128,58 @@ const config = R.compose(
     getConfig,
 )(configFile)
 
-const dbFileFormatWithExtension = addExtension(config.db.backupFileFormat, compressedExtensions.db)
+const compressedExtensions = {
+    files: 'tar.gz',
+    db: 'sql.gz',
+}
+
+const fileFormatWithExtension = {
+    db: addExtension(config.db.backupFileFormat, compressedExtensions.db),
+    files: addExtension(config.files.backupFileFormat, compressedExtensions.files),
+}
+
+const makeLocalBackup = (filesOrDatabaseForErrorMessage, backupDest, fileFormat, num, makeBackup) => {
+    return ensureBackupDestSubFolders(backupDest)
+        .catch(err => exitError(`Failed while creating daily, weekly, monthly folders for ${filesOrDatabaseForErrorMessage} backups.`, err))
+        .then(([dailyDest, weeklyDest, monthlyDest]) => {
+            return getLocalInfos(
+                fileFormat,
+                dailyDest,
+                weeklyDest,
+                monthlyDest,
+            )
+                .catch(err => exitError(`Failed while reading local ${filesOrDatabaseForErrorMessage} backups folders.`, err))
+                .then(infos => {
+                    if(shouldMakeLocalBackup(infos)) {
+                        return makeBackup(dailyDest)
+                            .catch(err => exitError(`Failed while making ${filesOrDatabaseForErrorMessage} backup.`, err))
+                            .then(backupFileName => {
+                                return R.prepend(
+                                    fileInfoFromName('daily', fileFormat, path.dirname(backupFileName), path.basename(backupFileName)),
+                                    infos,
+                                )
+                            })
+                    }
+                    else {
+                        return infos
+                    }
+                })
+                .then(promoteLocalBackups(num, weeklyDest, monthlyDest))
+                .then(removeExpiredLocalBackups(num))
+        })
+        .catch(err => exitError(`Unknown error while processing local ${filesOrDatabaseForErrorMessage} backups.`, err))
+}
+
+// don't perform backups async because we don't want one task's failure to kill the process while the other task is running.
 
 // database backups
-ensureBackupDestSubFolders(config.db.backupDest)
-    .catch(err => exitError('Failed while creating daily, weekly, monthly folders for database backups.', err))
-    .then(([dailyDest, weeklyDest, monthlyDest]) => {
-        return getLocalInfos(
-            dbFileFormatWithExtension,
-            dailyDest,
-            weeklyDest,
-            monthlyDest,
-        )
-            .catch(err => exitError('Failed while reading local database backups folders.', err))
-            .then(infos => {
-                if(shouldMakeLocalBackup(infos)) {
-                    return makeDatabaseBackup(config.db.user, config.db.pass, config.db.name, config.db.port, dbFileFormatWithExtension, dailyDest)
-                        .catch(err => exitError('Failed while making database backup.', err))
-                        .then(backupFileName => {
-                            return R.prepend(
-                                fileInfoFromName('daily', dbFileFormatWithExtension, path.dirname(backupFileName), path.basename(backupFileName)),
-                                infos,
-                            )
-                        })
-                }
-                else {
-                    return infos
-                }
-            })
-            .then(promoteLocalBackups(config.local.num, weeklyDest, monthlyDest))
-            .then(removeExpiredLocalBackups(config.local.num))
-            // .then(reportM('local infos'))
+makeLocalBackup('database', config.db.backupDest, fileFormatWithExtension.db, config.local.num, (dailyDest) => {
+    return makeDatabaseBackup(config.db.user, config.db.pass, config.db.name, config.db.port, fileFormatWithExtension.db, dailyDest)
+})
+    .then(() => {
+        // files backups
+        return makeLocalBackup('file', config.files.backupDest, fileFormatWithExtension.files, config.local.num, (dailyDest) => {
+            return makeFilesBackup(config.files.source, fileFormatWithExtension.files, dailyDest)
+        })
+            .then(reportM('input files')) // stub
     })
-    .catch(err => exitError('Unknown error while processing local database backups.', err))
