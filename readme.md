@@ -2,6 +2,10 @@
 
 > A script to back up websites locally and to S3.
 
+## Description
+
+Makes local and remote backups of a database and a folder. Uses S3 for remote backups. Will only ever create a daily backup. Other backup frequencies (weekly, monthly) are made from copying a daily backup. So, if you have a bunch of local backups and you enable e.g. three weekly and 2 montly S3 backups, even if those backups are available locally, they won't all be copied. Only one daily backup will be copied at a time. Eventually the remote backups will build up to the weekly and monthly quotas listed in the config. So the config more defines what should be *kept* rather than what should be *created*.
+
 ## Setup
 
 1. Clone the repo.
@@ -34,8 +38,8 @@ These are the config file parameters. All of them must be set. If you change any
     - **accessKeyId** and **secretAccessKey**. Used to authenticate access to the S3 account.
     - **endpoint**. The endpoint used to access S3. For example: `nyc3.digitaloceanspaces.com`
     - **bucket**. The name of the bucket to store backups in.
-    - **dbPrefix**. All database backup objects stored in the S3 bucket will be prefixed with this value. If using slashes, you likely want to include a trailing slash. If you are storing backups for multiple sites in the same bucket, use this to differentiate them. Prefixes 'daily/', 'weekly/', and 'monthly/' will be added to this prefix. For example: `/backups/abound.college/db/`
-    - **filesPrefix**. All files backup objects stored in the S3 bucket will be prefixed with this value. If using slashes, you likely want to include a trailing slash. If you are storing backups for multiple sites in the same bucket, use this to differentiate them. Prefixes 'daily/', 'weekly/', and 'monthly/' will be added to this prefix. For example: `/backups/abound.college/files/`
+    - **dbPrefix**. All database backup objects stored in the S3 bucket will be prefixed with this value. If you are storing backups for multiple sites in the same bucket, use this to differentiate them. Prefixes 'daily/', 'weekly/', and 'monthly/' will be added to this prefix. For example: `/backups/abound.college/db/`
+    - **filesPrefix**. All files backup objects stored in the S3 bucket will be prefixed with this value. If you are storing backups for multiple sites in the same bucket, use this to differentiate them. Prefixes 'daily/', 'weekly/', and 'monthly/' will be added to this prefix. For example: `/backups/abound.college/files/`
 
 ### cron
 

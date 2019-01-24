@@ -1,17 +1,24 @@
 const path = require('path')
 const R = require('ramda')
 const dateFns = require('date-fns')
+const { S3 } = require('aws-sdk')
 const { get } = require('@cullylarson/f')
 const {
     addExtension,
     ensureBackupDestSubFolders,
     getLocalInfos,
-    shouldMakeLocalBackup,
+    shouldMakeBackup,
     makeDatabaseBackup,
     fileInfoFromName,
     removeExpiredLocalBackups,
     promoteLocalBackups,
     makeFilesBackup,
+    getRemoteInfos,
+    ensureRemoteBucket,
+    copyYoungestLocalBackupToRemote,
+    objectInfoFromKey,
+    promoteRemoteBackups,
+    removeExpiredRemoteBackups,
 } = require('./lib/utils')
 
 const exitError = (name, msg, err = undefined) => {
@@ -164,7 +171,7 @@ const makeLocalBackup = async (filesOrDatabaseForErrorMessage, configName, backu
     )
         .catch(err => exitError(configName, `Failed while reading local ${filesOrDatabaseForErrorMessage} backups folders.`, err))
         .then(infos => {
-            if(shouldMakeLocalBackup(infos)) {
+            if(shouldMakeBackup(infos)) {
                 return makeBackup(dailyDest)
                     .catch(err => exitError(configName, `Failed while making ${filesOrDatabaseForErrorMessage} backup.`, err))
                     .then(backupFileName => {
@@ -184,18 +191,58 @@ const makeLocalBackup = async (filesOrDatabaseForErrorMessage, configName, backu
         .catch(err => exitError(configName, `Unknown error while processing local ${filesOrDatabaseForErrorMessage} backups.`, err))
 }
 
+const makeRemoteBackup = async (filesOrDatabaseForErrorMessage, s3, configName, localBackupDest, bucket, fileFormat, num, prefix) => {
+    // remote database backups
+    await ensureRemoteBucket(s3, bucket)
+        .catch(err => exitError(configName, 'Failed while creating remote bucket.', err))
+        .then(() => getRemoteInfos(s3, config.s3.bucket, fileFormatWithExtension.db, config.s3.prefix))
+        .catch(err => exitError(configName, `Failed while reading remote ${filesOrDatabaseForErrorMessage} backup objects.`, err))
+        .then(infos => {
+            if(shouldMakeBackup(infos)) {
+                return copyYoungestLocalBackupToRemote(s3, bucket, localBackupDest, fileFormat, prefix)
+                    .catch(err => exitError(configName, `Failed while copy ${filesOrDatabaseForErrorMessage} backup to remote.`, err))
+                    .then(({ localFileNameFull, key }) => {
+                        notice(configName, `Copied ${filesOrDatabaseForErrorMessage} backup ${localFileNameFull} to remote: ${key}`)
+                        return R.prepend(
+                            objectInfoFromKey('daily', fileFormat, prefix, key),
+                            infos,
+                        )
+                    })
+            }
+            else {
+                return infos
+            }
+        })
+        .then(promoteRemoteBackups(s3, bucket, num, prefix))
+        .then(removeExpiredRemoteBackups(s3, bucket, num, prefix))
+        .catch(err => exitError(configName, `Unknown error while processing local ${filesOrDatabaseForErrorMessage} backups.`, err))
+}
+
 async function main() {
     // don't perform backups async because we don't want one task's failure to kill the process while the other task is running.
 
-    // database backups
+    // local database backups
     await makeLocalBackup('database', config.name, config.db.backupDest, fileFormatWithExtension.db, config.local.num, (dailyDest) => {
         return makeDatabaseBackup(config.db.user, config.db.pass, config.db.name, config.db.port, fileFormatWithExtension.db, dailyDest)
     })
 
-    // files backups
+    // local files backups
     await makeLocalBackup('file', config.name, config.files.backupDest, fileFormatWithExtension.files, config.local.num, (dailyDest) => {
         return makeFilesBackup(config.files.source, fileFormatWithExtension.files, dailyDest)
     })
+
+    const s3 = await new S3({
+        apiVersion: '2006-03-01',
+        endpoint: config.s3.endpoint,
+        accessKeyId: config.s3.accessKeyId,
+        secretAccessKey: config.s3.secretAccessKey,
+    })
+
+    // remote databae backup
+    await makeRemoteBackup('database', s3, config.name, config.db.backupDest, config.s3.bucket, fileFormatWithExtension.db, config.s3.num, config.s3.prefix)
+
+    // remote files backup
+    await makeRemoteBackup('files', s3, config.name, config.files.backupDest, config.s3.bucket, fileFormatWithExtension.files, config.s3.num, config.s3.prefix)
 }
 
 main()
