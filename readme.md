@@ -46,10 +46,10 @@ These are the config file parameters. All of them must be set. If you change any
 Your cron file would look something like this:
 
 ```
-# Backup Abound / Every day @ 3 am
+# Backup example.com / Every day @ 3 am
 0 3 * * * node /path/to/do-backup.js /path/to/config-example.com.json >> /path/to/log-file.txt
 
-# Backup CoD / Every day @ 3:10 am
+# Backup cullylarson.com / Every day @ 3:10 am
 10 3 * * * node /path/to/do-backup.js /path/to/config-cullylarson.com.json >> /path/to/log-file.txt
 ```
 
