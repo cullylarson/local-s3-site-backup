@@ -207,7 +207,7 @@ async function main() {
 
     // local database backups
     await makeLocalBackup('database', today, config.name, config.db.backupDest, fileFormatWithExtension.db, config.local.num, (dailyDest) => {
-        return makeDatabaseBackup(today, config.db.user, config.db.pass, config.db.name, config.db.port, fileFormatWithExtension.db, dailyDest)
+        return makeDatabaseBackup(today, config.db.user, config.db.pass, config.db.name, config.db.host, config.db.port, fileFormatWithExtension.db, dailyDest)
     })
 
     // local files backups

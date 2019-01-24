@@ -4,6 +4,7 @@
         "user": "",
         "pass": "",
         "name": "",
+        "host": "localhost",
         "port": 3306,
         "backupDest": "",
         "backupFileFormat": ""
