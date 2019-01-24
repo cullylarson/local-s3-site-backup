@@ -238,6 +238,7 @@ if(!configFile) {
 const config = R.compose(
     verifyConfig(configFile),
     getConfig,
+    x => path.join(process.cwd(), x),
 )(configFile)
 
 const compressedExtensions = {
