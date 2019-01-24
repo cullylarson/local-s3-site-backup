@@ -33,7 +33,10 @@ const exitError = (name, msg, err = undefined) => {
         'ERROR:',
         msg,
         err
-            ? `Got error: ${err}, ${err.stack}`
+            ? `Got error: ${err}`
+            : null,
+        err && err.stack
+            ? `\n${err.stack}`
             : null,
     ]
         .filter(x => !!x)
