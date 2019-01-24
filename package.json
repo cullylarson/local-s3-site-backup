@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/madcollective/mac-s3-backup.git"
+    "url": "git+https://github.com/cullylarson/local-s3-site-backup.git"
   },
   "author": "Cully Larson <cully.larson@gmail.com>",
   "bugs": {
