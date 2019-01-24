@@ -36,7 +36,7 @@ These are the config file parameters. All of them must be set. If you change any
         - **weekly**. The number of weekly backups to keep.
         - **monthly**. The number of montly backups to keep.
     - **accessKeyId** and **secretAccessKey**. Used to authenticate access to the S3 account.
-    - **endpoint**. The endpoint used to access S3. For example: `nyc3.digitaloceanspaces.com`
+    - **endpoint**. The endpoint used to access S3. For example: `sfo2.digitaloceanspaces.com`
     - **bucket**. The name of the bucket to store backups in.
     - **dbPrefix**. All database backup objects stored in the S3 bucket will be prefixed with this value. If you are storing backups for multiple sites in the same bucket, use this to differentiate them. Prefixes 'daily/', 'weekly/', and 'monthly/' will be added to this prefix. For example: `/backups/abound.college/db/`
     - **filesPrefix**. All files backup objects stored in the S3 bucket will be prefixed with this value. If you are storing backups for multiple sites in the same bucket, use this to differentiate them. Prefixes 'daily/', 'weekly/', and 'monthly/' will be added to this prefix. For example: `/backups/abound.college/files/`

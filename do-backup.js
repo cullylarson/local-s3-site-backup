@@ -3,11 +3,12 @@ const R = require('ramda')
 const dateFns = require('date-fns')
 const { S3 } = require('aws-sdk')
 const { get } = require('@cullylarson/f')
+const { objectInfoFromKey } = require('./lib/infos')
 const {
+    reportM,
     addExtension,
     shouldMakeBackup,
     fileInfoFromName,
-    objectInfoFromKey,
 } = require('./lib/utils')
 
 const {
@@ -34,7 +35,7 @@ const exitError = (name, msg, err = undefined) => {
         'ERROR:',
         msg,
         err
-            ? `Got error: ${err}`
+            ? `Got error: ${err}, ${err.stack}`
             : null,
     ]
         .filter(x => !!x)
@@ -180,7 +181,7 @@ const makeRemoteBackup = async (filesOrDatabaseForErrorMessage, today, s3, confi
     // remote database backups
     await ensureRemoteBucket(s3, bucket)
         .catch(err => exitError(configName, 'Failed while creating remote bucket.', err))
-        .then(() => getRemoteInfos(s3, config.s3.bucket, fileFormatWithExtension.db, config.s3.prefix))
+        .then(() => getRemoteInfos(s3, bucket, fileFormatWithExtension.db, prefix))
         .catch(err => exitError(configName, `Failed while reading remote ${filesOrDatabaseForErrorMessage} backup objects.`, err))
         .then(infos => {
             if(shouldMakeBackup(today, infos)) {
@@ -198,9 +199,12 @@ const makeRemoteBackup = async (filesOrDatabaseForErrorMessage, today, s3, confi
                 return infos
             }
         })
+        .then(reportM('infos'))
         .then(promoteRemoteBackups(today, s3, bucket, num, prefix))
-        .then(removeExpiredRemoteBackups(s3, bucket, num, prefix))
-        .catch(err => exitError(configName, `Unknown error while processing local ${filesOrDatabaseForErrorMessage} backups.`, err))
+        .then(reportM('after promotion'))
+        .then(removeExpiredRemoteBackups(s3, bucket, num))
+        .then(reportM('after remove'))
+        .catch(err => exitError(configName, `Unknown error while processing remote ${filesOrDatabaseForErrorMessage} backups.`, err))
 }
 
 async function main() {
@@ -217,6 +221,7 @@ async function main() {
     await makeLocalBackup('file', today, config.name, config.files.backupDest, fileFormatWithExtension.files, config.local.num, (dailyDest) => {
         return makeFilesBackup(today, config.files.source, fileFormatWithExtension.files, dailyDest)
     })
+        .then(reportM('local files backup'))
 
     const s3 = await new S3({
         apiVersion: '2006-03-01',
@@ -226,10 +231,12 @@ async function main() {
     })
 
     // remote databae backup
-    await makeRemoteBackup('database', today, s3, config.name, config.db.backupDest, config.s3.bucket, fileFormatWithExtension.db, config.s3.num, config.s3.prefix)
+    await makeRemoteBackup('database', today, s3, config.name, config.db.backupDest, config.s3.bucket, fileFormatWithExtension.db, config.s3.num, config.s3.dbPrefix)
+        .then(reportM('remote db backup'))
 
     // remote files backup
-    await makeRemoteBackup('files', today, s3, config.name, config.files.backupDest, config.s3.bucket, fileFormatWithExtension.files, config.s3.num, config.s3.prefix)
+    await makeRemoteBackup('files', today, s3, config.name, config.files.backupDest, config.s3.bucket, fileFormatWithExtension.files, config.s3.num, config.s3.filesPrefix)
+        .then(reportM('remote files backup'))
 }
 
 const configFile = get(2, null, process.argv)
