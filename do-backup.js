@@ -84,8 +84,8 @@ const verifyConfig = R.curry((configFile, config) => {
             .forEach(x => verifyRequired(R.append(x, prefix), requiredParameters, config))
     }
 
-    const requiredParameters = {
-        'name': {},
+    // only required if 'db' is present in the config
+    const dbRequiredParameters = {
         'db': {
             'user': {},
             'pass': {},
@@ -94,11 +94,19 @@ const verifyConfig = R.curry((configFile, config) => {
             'backupDest': {},
             'backupFileFormat': {},
         },
+    }
+
+    // only required if 'files' is present in the config
+    const filesRequireParameters = {
         'files': {
             'source': {},
             'backupDest': {},
             'backupFileFormat': {},
         },
+    }
+
+    const requiredParameters = {
+        'name': {},
         'local': {
             'num': {
                 'daily': {},
@@ -122,6 +130,18 @@ const verifyConfig = R.curry((configFile, config) => {
     }
 
     verifyRequired([], requiredParameters, config)
+
+    if(!config.db && !config.files) {
+        exitError(config.name, "You must at least provide settings for 'db' or 'files'. Neither was found.")
+    }
+
+    if(config.db) {
+        verifyRequired([], dbRequiredParameters, config)
+    }
+
+    if(config.files) {
+        verifyRequired([], filesRequireParameters, config)
+    }
 
     if(config.db.backupFileFormat === config.files.backupFileFormat) {
         exitError(config.name, 'Config parameters db.backupFileFormat and files.backupFileFormat cannot have the same value.')
@@ -209,14 +229,18 @@ async function main() {
     // don't perform backups async because we don't want one task's failure to kill the process while the other task is running.
 
     // local database backups
-    await makeLocalBackup('database', today, config.name, config.db.backupDest, fileFormatWithExtension.db, config.local.num, (dailyDest) => {
-        return makeDatabaseBackup(today, config.db.user, config.db.pass, config.db.name, config.db.host, config.db.port, fileFormatWithExtension.db, dailyDest)
-    })
+    if(config.db) {
+        await makeLocalBackup('database', today, config.name, config.db.backupDest, fileFormatWithExtension.db, config.local.num, (dailyDest) => {
+            return makeDatabaseBackup(today, config.db.user, config.db.pass, config.db.name, config.db.host, config.db.port, fileFormatWithExtension.db, dailyDest)
+        })
+    }
 
     // local files backups
-    await makeLocalBackup('file', today, config.name, config.files.backupDest, fileFormatWithExtension.files, config.local.num, (dailyDest) => {
-        return makeFilesBackup(today, config.files.source, fileFormatWithExtension.files, dailyDest)
-    })
+    if(config.files) {
+        await makeLocalBackup('file', today, config.name, config.files.backupDest, fileFormatWithExtension.files, config.local.num, (dailyDest) => {
+            return makeFilesBackup(today, config.files.source, fileFormatWithExtension.files, dailyDest)
+        })
+    }
 
     const s3 = await new S3({
         apiVersion: '2006-03-01',
@@ -226,10 +250,14 @@ async function main() {
     })
 
     // remote database backup
-    await makeRemoteBackup('database', today, s3, config.name, config.db.backupDest, config.s3.bucket, fileFormatWithExtension.db, config.s3.num, config.s3.dbPrefix)
+    if(config.db) {
+        await makeRemoteBackup('database', today, s3, config.name, config.db.backupDest, config.s3.bucket, fileFormatWithExtension.db, config.s3.num, config.s3.dbPrefix)
+    }
 
     // remote files backup
-    await makeRemoteBackup('files', today, s3, config.name, config.files.backupDest, config.s3.bucket, fileFormatWithExtension.files, config.s3.num, config.s3.filesPrefix)
+    if(config.files) {
+        await makeRemoteBackup('files', today, s3, config.name, config.files.backupDest, config.s3.bucket, fileFormatWithExtension.files, config.s3.num, config.s3.filesPrefix)
+    }
 }
 
 const configFile = get(2, null, process.argv)
