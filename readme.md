@@ -20,11 +20,11 @@ These are the config file parameters. All of them must be set. Though if you don
 - **name**. A name used in log files. For example: `Example Site`
 - **db**. The username, password, database name, host, and port used to connect to MySQL to fetch the site's data.
     - **backupDest**. The absolute path to the folder to store database backups. Folders named 'daily', 'weekly', and 'montly' will be created in this folder. For example: `/home/me/backups/example.com/db`)
-    - **backupFileFormat**. The format of database backup files. Can, and must, use `[DATE]` (case sensitive) in the format, and it will be replaced with the data in the format `YYYYMMDD`. Do not include a file extension, this will be addd automatically. This must be different from `files.backupFileFormat`. For example:`example.com-db-[DATE]`)
+    - **backupFileFormat**. The format of database backup files. Can, and must, use `[DATE]` (case sensitive) in the format, and it will be replaced with the data in the format `yyyyMMDD`. Do not include a file extension, this will be addd automatically. This must be different from `files.backupFileFormat`. For example:`example.com-db-[DATE]`)
 - **files**. Information for file backups.
     - **source**. The absolute path to the site files. For example: `/home/me/example.com`)
     - **backupDest**. The absolute path to the folder to store file backups. Folders named 'daily', 'weekly', and 'montly' will be created in this folder. For example: `/home/me/backups/example.com/files`)
-    - **backupFileFormat**. The format of file backup files. Can, and must, use `[DATE]` (case sensitive) in the format, and it will be replaced with the data in the format `YYYYMMDD`. Do not include a file extension, this will be addd automatically. This must be different from `db.backupFileFormat`. For example:`example.com-files-[DATE]`)
+    - **backupFileFormat**. The format of file backup files. Can, and must, use `[DATE]` (case sensitive) in the format, and it will be replaced with the data in the format `yyyyMMDD`. Do not include a file extension, this will be addd automatically. This must be different from `db.backupFileFormat`. For example:`example.com-files-[DATE]`)
 - **local**. Information about local backups.
     - **num**. The number of backups to keep.
         - **daily**. The number of daily backups to keep.

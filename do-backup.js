@@ -28,7 +28,7 @@ const {
 
 const exitError = (name, msg, err = undefined) => {
     const finalMessage = [
-        '[' + dateFns.format(new Date(), 'YYYY-MM-DD HH:mm:SS') + ']',
+        '[' + dateFns.format(new Date(), 'yyyy-MM-DD HH:mm:SS') + ']',
         `[${name}]`,
         'ERROR:',
         msg,
@@ -48,7 +48,7 @@ const exitError = (name, msg, err = undefined) => {
 
 const notice = (name, msg) => {
     const finalMessage = [
-        '[' + dateFns.format(new Date(), 'YYYY-MM-DD HH:mm:SS') + ']',
+        '[' + dateFns.format(new Date(), 'yyyy-MM-DD HH:mm:SS') + ']',
         `[${name}]`,
         msg,
     ]
