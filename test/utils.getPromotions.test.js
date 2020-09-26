@@ -2,7 +2,7 @@ const dateFns = require('date-fns')
 const { getPromotions } = require('../lib/utils')
 
 test('Does not return promotion if none to make', () => {
-    const today = dateFns.parse('2019-02-01')
+    const today = dateFns.parseISO('2019-02-01')
 
     const num = {
         daily: 7,
@@ -12,39 +12,39 @@ test('Does not return promotion if none to make', () => {
 
     const infos = [
         {
-            date: dateFns.parse('2019-02-01'),
+            date: dateFns.parseISO('2019-02-01'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-31'),
+            date: dateFns.parseISO('2019-01-31'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-30'),
+            date: dateFns.parseISO('2019-01-30'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-29'),
+            date: dateFns.parseISO('2019-01-29'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-28'),
+            date: dateFns.parseISO('2019-01-28'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-27'),
+            date: dateFns.parseISO('2019-01-27'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-26'),
+            date: dateFns.parseISO('2019-01-26'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-26'),
+            date: dateFns.parseISO('2019-01-26'),
             frequency: 'weekly',
         },
         {
-            date: dateFns.parse('2019-01-26'),
+            date: dateFns.parseISO('2019-01-26'),
             frequency: 'monthly',
         },
     ]
@@ -58,7 +58,7 @@ test('Does not return promotion if none to make', () => {
 })
 
 test('Returns weekly promotion', () => {
-    const today = dateFns.parse('2019-02-01')
+    const today = dateFns.parseISO('2019-02-01')
 
     const num = {
         daily: 7,
@@ -68,39 +68,39 @@ test('Returns weekly promotion', () => {
 
     const infos = [
         {
-            date: dateFns.parse('2019-02-01'),
+            date: dateFns.parseISO('2019-02-01'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-31'),
+            date: dateFns.parseISO('2019-01-31'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-30'),
+            date: dateFns.parseISO('2019-01-30'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-29'),
+            date: dateFns.parseISO('2019-01-29'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-28'),
+            date: dateFns.parseISO('2019-01-28'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-27'),
+            date: dateFns.parseISO('2019-01-27'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-26'),
+            date: dateFns.parseISO('2019-01-26'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-25'),
+            date: dateFns.parseISO('2019-01-25'),
             frequency: 'weekly',
         },
         {
-            date: dateFns.parse('2019-01-03'),
+            date: dateFns.parseISO('2019-01-03'),
             frequency: 'monthly',
         },
     ]
@@ -114,7 +114,7 @@ test('Returns weekly promotion', () => {
 })
 
 test('Returns monthly promotion', () => {
-    const today = dateFns.parse('2019-02-01')
+    const today = dateFns.parseISO('2019-02-01')
 
     const num = {
         daily: 7,
@@ -124,39 +124,39 @@ test('Returns monthly promotion', () => {
 
     const infos = [
         {
-            date: dateFns.parse('2019-02-01'),
+            date: dateFns.parseISO('2019-02-01'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-31'),
+            date: dateFns.parseISO('2019-01-31'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-30'),
+            date: dateFns.parseISO('2019-01-30'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-29'),
+            date: dateFns.parseISO('2019-01-29'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-28'),
+            date: dateFns.parseISO('2019-01-28'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-27'),
+            date: dateFns.parseISO('2019-01-27'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-26'),
+            date: dateFns.parseISO('2019-01-26'),
             frequency: 'daily',
         },
         {
-            date: dateFns.parse('2019-01-27'),
+            date: dateFns.parseISO('2019-01-27'),
             frequency: 'weekly',
         },
         {
-            date: dateFns.parse('2019-01-02'),
+            date: dateFns.parseISO('2019-01-02'),
             frequency: 'monthly',
         },
     ]
