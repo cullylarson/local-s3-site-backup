@@ -1,6 +1,6 @@
 {
   "name": "mac-s3-backup",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A script to back up websites locally and to S3.",
   "main": "do-backup.js",
   "scripts": {
