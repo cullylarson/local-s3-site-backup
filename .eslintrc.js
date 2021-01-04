@@ -9,6 +9,7 @@ module.exports = {
         'ecmaVersion': 8,
         'sourceType': 'script',
     },
+    'ignorePatterns': ['.eslintrc.js'],
     'rules': {
         'indent': ['error', 4, {'SwitchCase': 1}],
         'space-before-function-paren': ['error', {
