@@ -47,6 +47,9 @@ const exitError = (name, msg, err = undefined) => {
 }
 
 const notice = (name, msg) => {
+    // only log errors
+    if(options.onlyErrors) return
+
     const finalMessage = [
         '[' + dateFns.format(new Date(), 'yyyy-MM-dd HH:mm:SS') + ']',
         `[${name}]`,
@@ -264,7 +267,20 @@ async function main() {
     }
 }
 
-const configFile = get(2, null, process.argv)
+const options = require('yargs')
+    .usage('Usage: $0 [options] <config-file>')
+    .help('h')
+    .options({
+        onlyErrors: {
+            describe: "Only log error messages. Don't log progress messages.",
+            default: false,
+            type: 'boolean',
+        },
+    })
+    .demandCommand(1) // makes the config file required
+    .argv
+
+const configFile = options._[0]
 
 if(!configFile) {
     exitError('???', 'You must provide the path to a config file.')
