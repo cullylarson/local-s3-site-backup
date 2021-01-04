@@ -212,7 +212,7 @@ const makeRemoteBackup = async (filesOrDatabaseForErrorMessage, today, s3, confi
         .then(infos => {
             if(shouldMakeBackup(today, infos)) {
                 return copyYoungestLocalBackupToRemote(s3, bucket, localBackupDest, fileFormat, prefix)
-                    .catch(err => exitError(configName, `Failed while copy ${filesOrDatabaseForErrorMessage} backup to remote.`, err))
+                    .catch(err => exitError(configName, `Failed while copying ${filesOrDatabaseForErrorMessage} backup to remote.`, err))
                     .then(({ localFileNameFull, key }) => {
                         notice(configName, `Uploaded ${filesOrDatabaseForErrorMessage} backup ${localFileNameFull} to remote: ${key}`)
                         return R.prepend(
