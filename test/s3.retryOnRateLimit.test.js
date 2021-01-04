@@ -45,6 +45,22 @@ test("Only tries once if throwing an exception that isn't rate limiting.", () =>
         })
 })
 
+test('Only tries once if numTries is set to 1.', () => {
+    expect.assertions(1)
+
+    let numTries = 0
+
+    const doIt = () => {
+        numTries++
+        return Promise.reject(getRateLimitError())
+    }
+
+    return retryOnRateLimit(doIt, 1)
+        .catch(() => {
+            expect(numTries).toBe(1)
+        })
+})
+
 test('Retries on rate limit.', () => {
     expect.assertions(1)
 
