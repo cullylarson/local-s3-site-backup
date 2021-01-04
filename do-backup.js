@@ -89,50 +89,50 @@ const verifyConfig = R.curry((configFile, config) => {
 
     // only required if 'db' is present in the config
     const dbRequiredParameters = {
-        'db': {
-            'user': {},
-            'pass': {},
-            'name': {},
-            'port': {},
-            'backupDest': {},
-            'backupFileFormat': {},
+        db: {
+            user: {},
+            pass: {},
+            name: {},
+            port: {},
+            backupDest: {},
+            backupFileFormat: {},
         },
-        's3': {
-            'dbPrefix': {},
+        s3: {
+            dbPrefix: {},
         },
     }
 
     // only required if 'files' is present in the config
     const filesRequireParameters = {
-        'files': {
-            'source': {},
-            'backupDest': {},
-            'backupFileFormat': {},
+        files: {
+            source: {},
+            backupDest: {},
+            backupFileFormat: {},
         },
-        's3': {
-            'filesPrefix': {},
+        s3: {
+            filesPrefix: {},
         },
     }
 
     const requiredParameters = {
-        'name': {},
-        'local': {
-            'num': {
-                'daily': {},
-                'weekly': {},
-                'monthly': {},
+        name: {},
+        local: {
+            num: {
+                daily: {},
+                weekly: {},
+                monthly: {},
             },
         },
-        's3': {
-            'num': {
-                'daily': {},
-                'weekly': {},
-                'monthly': {},
+        s3: {
+            num: {
+                daily: {},
+                weekly: {},
+                monthly: {},
             },
-            'accessKeyId': {},
-            'secretAccessKey': {},
-            'endpoint': {},
-            'bucket': {},
+            accessKeyId: {},
+            secretAccessKey: {},
+            endpoint: {},
+            bucket: {},
         },
     }
 
