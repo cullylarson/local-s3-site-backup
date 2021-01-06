@@ -238,7 +238,7 @@ async function main() {
     // local database backups
     if(config.db) {
         await makeLocalBackup('database', today, config.name, config.db.backupDest, fileFormatWithExtension.db, config.local.num, (dailyDest) => {
-            return makeDatabaseBackup(today, config.db.user, config.db.pass, config.db.name, config.db.host, config.db.port, fileFormatWithExtension.db, dailyDest)
+            return makeDatabaseBackup(options.mariaDb, today, config.db.user, config.db.pass, config.db.name, config.db.host, config.db.port, fileFormatWithExtension.db, dailyDest)
         })
     }
 
@@ -271,6 +271,11 @@ const options = require('yargs')
     .usage('Usage: $0 [options] <config-file>')
     .help('h')
     .options({
+        mariaDb: {
+            describe: "Pass this flag if you're using maria db's mysqldump command.",
+            default: false,
+            type: 'boolean',
+        },
         onlyErrors: {
             describe: "Only log error messages. Don't log progress messages.",
             default: false,
