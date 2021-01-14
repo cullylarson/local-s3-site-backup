@@ -55,7 +55,7 @@ test('Only tries once if numTries is set to 1.', () => {
         return Promise.reject(getRateLimitError())
     }
 
-    return retryOnRateLimit(doIt, 1)
+    return retryOnRateLimit(doIt, { numTries: 1 })
         .catch(() => {
             expect(numTries).toBe(1)
         })
@@ -72,7 +72,7 @@ test('Retries on rate limit.', () => {
         else return Promise.reject(getRateLimitError())
     }
 
-    return retryOnRateLimit(doIt, 4, 1, 100)
+    return retryOnRateLimit(doIt, { numTries: 4, backoffMs: 1, backoffMaxMs: 100 })
         .then(() => {
             expect(numTries).toBe(3)
         })
@@ -88,7 +88,7 @@ test('Stops retrying after max retries reached.', () => {
         return Promise.reject(getRateLimitError())
     }
 
-    return retryOnRateLimit(doIt, 4, 1, 100)
+    return retryOnRateLimit(doIt, { numTries: 4, backoffMs: 1, backoffMaxMs: 100 })
         .catch(() => {
             expect(numTries).toBe(4)
         })
@@ -115,7 +115,7 @@ test('Backs off.', () => {
         return Promise.reject(getRateLimitError())
     }
 
-    return retryOnRateLimit(doIt, 4, backoff, 5000)
+    return retryOnRateLimit(doIt, { numTries: 4, backoffMs: backoff, backoffMaxMs: 5000 })
         .catch(() => {
             expect(numTries).toBe(4)
             // these times won't be exact, so give it some buffer
@@ -150,7 +150,7 @@ test('Backs off, but not more than max.', () => {
         return Promise.reject(getRateLimitError())
     }
 
-    return retryOnRateLimit(doIt, 6, backoff, backoffMax)
+    return retryOnRateLimit(doIt, { numTries: 6, backoffMs: backoff, backoffMaxMs: backoffMax })
         .catch(() => {
             expect(numTries).toBe(6)
             // these times won't be exact, so give it some buffer

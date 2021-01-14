@@ -2,12 +2,13 @@ const path = require('path')
 const R = require('ramda')
 const dateFns = require('date-fns')
 const { S3 } = require('aws-sdk')
-const { get } = require('@cullylarson/f')
+const { curry, get } = require('@cullylarson/f')
 const { objectInfoFromKey } = require('./lib/infos')
 const {
     addExtension,
     shouldMakeBackup,
     fileInfoFromName,
+    logImportances,
 } = require('./lib/utils')
 
 const {
@@ -46,9 +47,11 @@ const exitError = (name, msg, err = undefined) => {
     process.exit(1)
 }
 
-const notice = (name, msg) => {
+const notice = curry((name, importance, msg) => {
     // only log errors
     if(options.onlyErrors) return
+    // don't log VERBOSE
+    if(!options.verbose && importance <= logImportances.GENERAL) return
 
     const finalMessage = [
         '[' + dateFns.format(new Date(), 'yyyy-MM-dd HH:mm:SS') + ']',
@@ -58,7 +61,7 @@ const notice = (name, msg) => {
         .join(' ')
 
     console.log(finalMessage)
-}
+})
 
 const getConfig = (configFile) => {
     try {
@@ -189,7 +192,7 @@ const makeLocalBackup = async (filesOrDatabaseForErrorMessage, today, configName
                 return makeBackup(dailyDest)
                     .catch(err => exitError(configName, `Failed while making ${filesOrDatabaseForErrorMessage} backup.`, err))
                     .then(backupFileName => {
-                        notice(configName, `Made ${filesOrDatabaseForErrorMessage} backup: ${backupFileName}`)
+                        notice(configName, logImportances.GENERAL, `Made ${filesOrDatabaseForErrorMessage} backup: ${backupFileName}`)
                         return R.prepend(
                             fileInfoFromName('daily', fileFormat, path.dirname(backupFileName), path.basename(backupFileName)),
                             infos,
@@ -207,14 +210,14 @@ const makeLocalBackup = async (filesOrDatabaseForErrorMessage, today, configName
 
 const makeRemoteBackup = async (filesOrDatabaseForErrorMessage, today, s3, configName, localBackupDest, bucket, fileFormat, num, prefix) => {
     // remote database backups
-    return getRemoteInfos(s3, bucket, fileFormat, prefix)
+    return getRemoteInfos(notice(configName), s3, bucket, fileFormat, prefix)
         .catch(err => exitError(configName, `Failed while reading remote ${filesOrDatabaseForErrorMessage} backup objects.`, err))
         .then(infos => {
             if(shouldMakeBackup(today, infos)) {
-                return copyYoungestLocalBackupToRemote(s3, bucket, localBackupDest, fileFormat, prefix)
+                return copyYoungestLocalBackupToRemote(notice(configName), s3, bucket, localBackupDest, fileFormat, prefix)
                     .catch(err => exitError(configName, `Failed while copying ${filesOrDatabaseForErrorMessage} backup to remote.`, err))
                     .then(({ localFileNameFull, key }) => {
-                        notice(configName, `Uploaded ${filesOrDatabaseForErrorMessage} backup ${localFileNameFull} to remote: ${key}`)
+                        notice(configName, logImportances.GENERAL, `Uploaded ${filesOrDatabaseForErrorMessage} backup ${localFileNameFull} to remote: ${key}`)
                         return R.prepend(
                             objectInfoFromKey('daily', fileFormat, prefix, key),
                             infos,
@@ -225,8 +228,8 @@ const makeRemoteBackup = async (filesOrDatabaseForErrorMessage, today, s3, confi
                 return infos
             }
         })
-        .then(promoteRemoteBackups(today, s3, bucket, num, prefix))
-        .then(removeExpiredRemoteBackups(s3, bucket, num))
+        .then(promoteRemoteBackups(notice(configName), today, s3, bucket, num, prefix))
+        .then(removeExpiredRemoteBackups(notice(configName), s3, bucket, num))
         .catch(err => exitError(configName, `Unknown error while processing remote ${filesOrDatabaseForErrorMessage} backups.`, err))
 }
 
@@ -278,6 +281,11 @@ const options = require('yargs')
         },
         onlyErrors: {
             describe: "Only log error messages. Don't log progress messages.",
+            default: false,
+            type: 'boolean',
+        },
+        verbose: {
+            describe: 'Show more logs.',
             default: false,
             type: 'boolean',
         },
