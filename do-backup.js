@@ -27,9 +27,11 @@ const {
     ensureBackupDestSubFolders,
 } = require('./lib/local-backups')
 
+const dateFormatStr = 'yyyy-MM-dd HH:mm:ss.SSSS'
+
 const exitError = (name, msg, err = undefined) => {
     const finalMessage = [
-        '[' + dateFns.format(new Date(), 'yyyy-MM-dd HH:mm:SS') + ']',
+        '[' + dateFns.format(new Date(), dateFormatStr) + ']',
         `[${name}]`,
         'ERROR:',
         msg,
@@ -54,7 +56,7 @@ const notice = curry((name, importance, msg) => {
     if(!options.verbose && importance <= logImportances.GENERAL) return
 
     const finalMessage = [
-        '[' + dateFns.format(new Date(), 'yyyy-MM-dd HH:mm:SS') + ']',
+        '[' + dateFns.format(new Date(), dateFormatStr) + ']',
         `[${name}]`,
         msg,
     ]
