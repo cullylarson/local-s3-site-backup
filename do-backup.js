@@ -259,6 +259,9 @@ async function main() {
         endpoint: config.s3.endpoint,
         accessKeyId: config.s3.accessKeyId,
         secretAccessKey: config.s3.secretAccessKey,
+        httpOptions: {
+            timeout: 600 * 1000, // 600s = 10m
+        },
     })
 
     // remote database backup
