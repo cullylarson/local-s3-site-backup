@@ -5,11 +5,12 @@ const { S3 } = require('aws-sdk')
 const { curry, get } = require('@cullylarson/f')
 const { objectInfoFromKey } = require('./lib/infos')
 const {
-    addExtension,
     shouldMakeBackup,
     fileInfoFromName,
     logImportances,
 } = require('./lib/utils')
+
+const { addExtension } = require('./lib/infos')
 
 const {
     getRemoteInfos,
@@ -62,7 +63,7 @@ const notice = curry((name, importance, msg) => {
     ]
         .join(' ')
 
-    console.log(finalMessage)
+    console.info(finalMessage)
 })
 
 const getConfig = (configFile) => {
@@ -178,9 +179,17 @@ const verifyConfig = R.curry((configFile, config) => {
     return config
 })
 
-const makeLocalBackup = async (filesOrDatabaseForErrorMessage, today, configName, backupDest, fileFormat, num, makeBackup) => {
+const makeLocalBackup = async ({
+    backupTypeLabel, // a text label used only in log messages
+    today, // a Date object
+    configName, // the 'name' from the config for this backup
+    backupDest, // the backup file destination folder
+    fileFormat, // template string for the backup file
+    num, // the number of backups to keep at various frequencies
+    makeBackup, // a function that actually makes the backup
+}) => {
     const [dailyDest, weeklyDest, monthlyDest] = await ensureBackupDestSubFolders(backupDest)
-        .catch(err => exitError(configName, `Failed while creating daily, weekly, monthly folders for ${filesOrDatabaseForErrorMessage} backups.`, err))
+        .catch(err => exitError(configName, `Failed while creating daily, weekly, monthly folders for ${backupTypeLabel} backups.`, err))
 
     return getLocalInfos(
         fileFormat,
@@ -188,13 +197,13 @@ const makeLocalBackup = async (filesOrDatabaseForErrorMessage, today, configName
         weeklyDest,
         monthlyDest,
     )
-        .catch(err => exitError(configName, `Failed while reading local ${filesOrDatabaseForErrorMessage} backups folders.`, err))
+        .catch(err => exitError(configName, `Failed while reading local ${backupTypeLabel} backups folders.`, err))
         .then(infos => {
             if(shouldMakeBackup(today, infos)) {
                 return makeBackup(dailyDest)
-                    .catch(err => exitError(configName, `Failed while making ${filesOrDatabaseForErrorMessage} backup.`, err))
+                    .catch(err => exitError(configName, `Failed while making ${backupTypeLabel} backup.`, err))
                     .then(backupFileName => {
-                        notice(configName, logImportances.GENERAL, `Made ${filesOrDatabaseForErrorMessage} backup: ${backupFileName}`)
+                        notice(configName, logImportances.GENERAL, `Made ${backupTypeLabel} backup: ${backupFileName}`)
                         return R.prepend(
                             fileInfoFromName('daily', fileFormat, path.dirname(backupFileName), path.basename(backupFileName)),
                             infos,
@@ -207,19 +216,29 @@ const makeLocalBackup = async (filesOrDatabaseForErrorMessage, today, configName
         })
         .then(promoteLocalBackups(today, num, weeklyDest, monthlyDest))
         .then(removeExpiredLocalBackups(num))
-        .catch(err => exitError(configName, `Unknown error while processing local ${filesOrDatabaseForErrorMessage} backups.`, err))
+        .catch(err => exitError(configName, `Unknown error while processing local ${backupTypeLabel} backups.`, err))
 }
 
-const makeRemoteBackup = async (filesOrDatabaseForErrorMessage, today, s3, configName, localBackupDest, bucket, fileFormat, num, prefix) => {
+const makeRemoteBackup = async ({
+    backupTypeLabel, // a text label used only in log messages
+    today, // a Date object
+    s3,
+    configName, // the 'name' from the config for this backup
+    localBackupDest, // the local backup destination folder
+    bucket, // the bucket to copy files to
+    fileFormat, // template string for the backup file. used to identify backup files
+    num, // the number of backups to keep at various frequencies
+    prefix, // a prefix to add to file names (basically a path)
+}) => {
     // remote database backups
     return getRemoteInfos(notice(configName), s3, bucket, fileFormat, prefix)
-        .catch(err => exitError(configName, `Failed while reading remote ${filesOrDatabaseForErrorMessage} backup objects.`, err))
+        .catch(err => exitError(configName, `Failed while reading remote ${backupTypeLabel} backup objects.`, err))
         .then(infos => {
             if(shouldMakeBackup(today, infos)) {
                 return copyYoungestLocalBackupToRemote(notice(configName), s3, bucket, localBackupDest, fileFormat, prefix)
-                    .catch(err => exitError(configName, `Failed while copying ${filesOrDatabaseForErrorMessage} backup to remote.`, err))
+                    .catch(err => exitError(configName, `Failed while copying ${backupTypeLabel} backup to remote.`, err))
                     .then(({ localFileNameFull, key }) => {
-                        notice(configName, logImportances.GENERAL, `Uploaded ${filesOrDatabaseForErrorMessage} backup ${localFileNameFull} to remote: ${key}`)
+                        notice(configName, logImportances.GENERAL, `Uploaded ${backupTypeLabel} backup ${localFileNameFull} to remote: ${key}`)
                         return R.prepend(
                             objectInfoFromKey('daily', fileFormat, prefix, key),
                             infos,
@@ -232,7 +251,7 @@ const makeRemoteBackup = async (filesOrDatabaseForErrorMessage, today, s3, confi
         })
         .then(promoteRemoteBackups(notice(configName), today, s3, bucket, num, prefix))
         .then(removeExpiredRemoteBackups(notice(configName), s3, bucket, num))
-        .catch(err => exitError(configName, `Unknown error while processing remote ${filesOrDatabaseForErrorMessage} backups.`, err))
+        .catch(err => exitError(configName, `Unknown error while processing remote ${backupTypeLabel} backups.`, err))
 }
 
 async function main() {
@@ -242,15 +261,50 @@ async function main() {
 
     // local database backups
     if(config.db) {
-        await makeLocalBackup('database', today, config.name, config.db.backupDest, fileFormatWithExtension.db, config.local.num, (dailyDest) => {
-            return makeDatabaseBackup(options.mariaDb, today, config.db.user, config.db.pass, config.db.name, config.db.host, config.db.port, fileFormatWithExtension.db, dailyDest)
+        await makeLocalBackup({
+            backupTypeLabel: 'database',
+            today,
+            configName: config.name,
+            backupDest: config.db.backupDest,
+            fileFormat: fileFormatWithExtension.db,
+            num: config.local.num,
+            makeBackup: (dailyDest) => {
+                return makeDatabaseBackup({
+                    isMariaDb: Boolean(config.db.isMariaDb),
+                    today,
+                    user: config.db.user,
+                    pass: config.db.pass,
+                    name: config.db.name,
+                    host: config.db.host,
+                    port: config.db.port,
+                    fileNameFormat: fileFormatWithExtension.db,
+                    destFolder: dailyDest,
+                    symmetricKey: get('symmetricKey', null, config.db),
+                    encryptionIterationCount: get('encryptionIterationCount', null, config.db),
+                })
+            },
         })
     }
 
     // local files backups
     if(config.files) {
-        await makeLocalBackup('file', today, config.name, config.files.backupDest, fileFormatWithExtension.files, config.local.num, (dailyDest) => {
-            return makeFilesBackup(today, config.files.source, fileFormatWithExtension.files, dailyDest)
+        await makeLocalBackup({
+            backupTypeLabel: 'file',
+            today,
+            configName: config.name,
+            backupDest: config.files.backupDest,
+            fileFormat: fileFormatWithExtension.files,
+            num: config.local.num,
+            makeBackup: (dailyDest) => {
+                return makeFilesBackup({
+                    today,
+                    sourceFolder: config.files.source,
+                    fileNameFormat: fileFormatWithExtension.files,
+                    destFolder: dailyDest,
+                    symmetricKey: get('symmetricKey', null, config.files),
+                    encryptionIterationCount: get('encryptionIterationCount', null, config.db),
+                })
+            },
         })
     }
 
@@ -266,12 +320,32 @@ async function main() {
 
     // remote database backup
     if(config.db) {
-        await makeRemoteBackup('database', today, s3, config.name, config.db.backupDest, config.s3.bucket, fileFormatWithExtension.db, config.s3.num, config.s3.dbPrefix)
+        await makeRemoteBackup({
+            backupTypeLabel: 'database',
+            today,
+            s3,
+            configName: config.name,
+            localBackupDest: config.db.backupDest,
+            bucket: config.s3.bucket,
+            fileFormat: fileFormatWithExtension.db,
+            num: config.s3.num,
+            prefix: config.s3.dbPrefix,
+        })
     }
 
     // remote files backup
     if(config.files) {
-        await makeRemoteBackup('files', today, s3, config.name, config.files.backupDest, config.s3.bucket, fileFormatWithExtension.files, config.s3.num, config.s3.filesPrefix)
+        await makeRemoteBackup({
+            backupTypeLabel: 'files',
+            today,
+            s3,
+            configName: config.name,
+            localBackupDest: config.files.backupDest,
+            bucket: config.s3.bucket,
+            fileFormat: fileFormatWithExtension.files,
+            num: config.s3.num,
+            prefix: config.s3.filesPrefix,
+        })
     }
 }
 
@@ -279,11 +353,6 @@ const options = require('yargs')
     .usage('Usage: $0 [options] <config-file>')
     .help('h')
     .options({
-        mariaDb: {
-            describe: "Pass this flag if you're using maria db's mysqldump command.",
-            default: false,
-            type: 'boolean',
-        },
         onlyErrors: {
             describe: "Only log error messages. Don't log progress messages.",
             default: false,
@@ -315,9 +384,14 @@ const compressedExtensions = {
     db: 'sql.gz',
 }
 
+const compressedExtensionsEncrypted = {
+    files: 'tar.gz.enc',
+    db: 'sql.gz.enc',
+}
+
 const fileFormatWithExtension = {
-    db: config.db ? addExtension(config.db.backupFileFormat, compressedExtensions.db) : null,
-    files: config.files ? addExtension(config.files.backupFileFormat, compressedExtensions.files) : null,
+    db: config.db ? addExtension(config.db.backupFileFormat, config.db.symmetricKey ? compressedExtensionsEncrypted.db : compressedExtensions.db) : null,
+    files: config.files ? addExtension(config.files.backupFileFormat, config.files.symmetricKey ? compressedExtensionsEncrypted.files : compressedExtensions.files) : null,
 }
 
 main()

@@ -5,7 +5,8 @@
   "main": "do-backup.js",
   "scripts": {
     "lint": "esw --watch --color",
-    "test": "jest ./test"
+    "test": "jest ./test",
+    "do-backup:test": "docker exec s3-backup-db bash -c 'cd /var/app && node do-backup.js --verbose config.json'"
   },
   "repository": {
     "type": "git",

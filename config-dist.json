@@ -7,12 +7,17 @@
         "host": "localhost",
         "port": 3306,
         "backupDest": "",
-        "backupFileFormat": ""
+        "backupFileFormat": "",
+        "isMariaDb": false,
+        "symmetricKey": null,
+        "encryptionIterationCount": 2000000
     },
     "files": {
         "source": "",
         "backupDest": "",
-        "backupFileFormat": ""
+        "backupFileFormat": "",
+        "symmetricKey": null,
+        "encryptionIterationCount": 2000000
     },
     "local": {
         "num": {
