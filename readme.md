@@ -66,7 +66,7 @@ openssl rand -base64 32
 In order to decrypt your files, run something like this (change the `-iter` value to whatever you passed as the `encryptionIterationCount` parameter):
 
 ```bash
-openssl enc -d -aes-256-cbc -pbkdf2 -iter 2000000 -in path/to/backup-file.tar.gz.enc -out path/to/backup-file.tar.gz -pass pass:<the-symmetric-key-you-provided-to-encrypt>
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 2000000 -in path/to/backup-file.tar.gz.enc -out path/to/backup-file.tar.gz -pass "pass:<the-symmetric-key-you-provided-to-encrypt>"
 ```
 
 If you don't want your key to be saved to the command history, you can either put a space before the command (the command won't be saved to history) or put the key in a file and run:
